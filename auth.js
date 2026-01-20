@@ -319,4 +319,5 @@ window.Auth = {
     showError,
     confirmDialog,
     CONFIG
+
 };
