@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Pembayaran - SIM Buku ISMUBA & MIPA</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .payment-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .payment-card.pending {
+            border-left: 5px solid var(--warning-color);
+        }
+        
+        .payment-card.paid {
+            border-left: 5px solid var(--success-color);
+        }
+        
+        .payment-card.overpaid {
+            border-left: 5px solid var(--accent-color);
+        }
+        
+        .amount-input {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: right;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        
+        .amount-input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .calculation-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .calculation-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .calculation-row.total {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            border-top: 2px solid #dee2e6;
+            border-bottom: none;
+            margin-top: 10px;
+            padding-top: 15px;
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .status-unpaid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-paid {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-overpaid {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .quick-amount-btn {
+            margin: 5px;
+            min-width: 100px;
+        }
+        
+        .order-search-results {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .order-item {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .order-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .order-item.selected {
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-md-block sidebar p-0">
+                <div class="position-sticky">
+                    <div class="p-3 text-center border-bottom bg-primary text-white">
+                        <h4><i class="fas fa-book"></i> SIM Buku</h4>
+                        <small>ISMUBA & MIPA</small>
+                    </div>
+                    <div class="p-3">
+                        <div class="text-center mb-3">
+                            <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-user fa-2x text-white"></i>
+                            </div>
+                            <h6 class="mt-2 mb-0" id="userName">Admin User</h6>
+                            <small id="userRole" class="text-muted">Administrator</small>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="index.html" class="sidebar-link">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="input-pemesanan.html" class="sidebar-link">
+                            <i class="fas fa-cart-plus"></i> Input Pemesanan
+                        </a>
+                        <a href="input-pembayaran.html" class="sidebar-link active">
+                            <i class="fas fa-money-bill-wave"></i> Input Pembayaran
+                        </a>
+                        <a href="cetak-download.html" class="sidebar-link">
+                            <i class="fas fa-print"></i> Cetak & Download
+                        </a>
+                        <a href="nota-pembayaran.html" class="sidebar-link">
+                            <i class="fas fa-receipt"></i> Nota Pembayaran
+                        </a>
+                        <a href="#" class="sidebar-link" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 py-3">
+                <!-- Header -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2"><i class="fas fa-money-bill-wave"></i> Input Pembayaran</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetForm()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- Cari Pesanan -->
+                        <div class="form-section mb-4">
+                            <h5><i class="fas fa-search"></i> Cari Pesanan</h5>
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Cari berdasarkan:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="searchOrder" 
+                                               placeholder="Masukkan ID Pesanan atau Nama Sekolah...">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Filter Status</label>
+                                    <select class="form-select" id="filterStatus">
+                                        <option value="">Semua Status</option>
+                                        <option value="Belum Lunas">Belum Lunas</option>
+                                        <option value="Lunas">Lunas</option>
+                                        <option value="Kelebihan">Kelebihan</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="searchResults" class="order-search-results" style="display: none;">
+                                <!-- Hasil pencarian akan ditampilkan di sini -->
+                            </div>
+                        </div>
+
+                        <!-- Detail Pesanan Terpilih -->
+                        <div id="selectedOrderSection" style="display: none;">
+                            <div class="form-section mb-4">
+                                <h5><i class="fas fa-file-invoice"></i> Detail Pesanan</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>ID Pesanan:</strong><br>
+                                        <span id="orderId">-</span></p>
+                                        <p><strong>Tanggal Pesan:</strong><br>
+                                        <span id="orderDate">-</span></p>
+                                        <p><strong>Nama Sekolah:</strong><br>
+                                        <span id="orderSchool">-</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Kabupaten/Kota:</strong><br>
+                                        <span id="orderKabupaten">-</span></p>
+                                        <p><strong>Total Tagihan:</strong><br>
+                                        <span id="orderTotal" class="text-success fw-bold">Rp 0</span></p>
+                                        <p><strong>Status:</strong><br>
+                                        <span id="orderStatus" class="status-badge status-unpaid">Belum Lunas</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Pembayaran -->
+                            <div class="form-section">
+                                <h5><i class="fas fa-money-bill"></i> Input Pembayaran</h5>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">Tanggal Pembayaran <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="paymentDate" 
+                                           value="" required>
+                                    <div class="invalid-feedback">Harap isi tanggal pembayaran</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">Jumlah Pembayaran (Rp) <span class="text-danger">*</span></label>
+                                    <div class="input-group mb-3">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="number" class="form-control amount-input" 
+                                               id="paymentAmount" min="0" step="1000" 
+                                               placeholder="0" required>
+                                    </div>
+                                    <div class="invalid-feedback">Harap isi jumlah pembayaran</div>
+                                    
+                                    <div class="mt-2">
+                                        <small class="text-muted">Jumlah cepat:</small>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary quick-amount-btn" 
+                                                    onclick="setPaymentAmount(50000)">
+                                                Rp 50.000
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary quick-amount-btn" 
+                                                    onclick="setPaymentAmount(100000)">
+                                                Rp 100.000
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary quick-amount-btn" 
+                                                    onclick="setPaymentAmount(500000)">
+                                                Rp 500.000
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary quick-amount-btn" 
+                                                    onclick="setPaymentAmount(1000000)">
+                                                Rp 1.000.000
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">Metode Pembayaran</label>
+                                    <select class="form-select" id="paymentMethod">
+                                        <option value="Transfer Bank">Transfer Bank</option>
+                                        <option value="Tunai">Tunai</option>
+                                        <option value="Kredit">Kredit</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">Keterangan (opsional)</label>
+                                    <textarea class="form-control" id="paymentNote" rows="3" 
+                                              placeholder="Catatan tambahan..."></textarea>
+                                </div>
+                                
+                                <!-- Perhitungan Otomatis -->
+                                <div class="calculation-card">
+                                    <h6><i class="fas fa-calculator"></i> Perhitungan Otomatis</h6>
+                                    <div class="calculation-row">
+                                        <span>Total Tagihan:</span>
+                                        <span id="calcTotal">Rp 0</span>
+                                    </div>
+                                    <div class="calculation-row">
+                                        <span>Jumlah Bayar:</span>
+                                        <span id="calcPaid">Rp 0</span>
+                                    </div>
+                                    <div class="calculation-row">
+                                        <span>Sisa/Kelebihan:</span>
+                                        <span id="calcRemaining" class="text-success">Rp 0</span>
+                                    </div>
+                                    <div class="calculation-row">
+                                        <span>Bagi Hasil Sekolah (7%):</span>
+                                        <span id="calcSchoolShare" class="text-info">Rp 0</span>
+                                    </div>
+                                    <div class="calculation-row">
+                                        <span>Bagi Hasil Daerah (6.5%):</span>
+                                        <span id="calcRegionShare" class="text-info">Rp 0</span>
+                                    </div>
+                                    <div class="calculation-row total">
+                                        <span>Status:</span>
+                                        <span id="calcStatus" class="status-unpaid">Belum Lunas</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="button" class="btn btn-success btn-lg" id="submitPaymentBtn">
+                                        <i class="fas fa-check-circle"></i> Simpan Pembayaran
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Instruksi -->
+                        <div class="summary-card">
+                            <h5><i class="fas fa-info-circle"></i> Petunjuk</h5>
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-exclamation-circle"></i> Cara Input Pembayaran:</h6>
+                                <ol class="mb-0 ps-3">
+                                    <li>Cari pesanan dengan ID atau nama sekolah</li>
+                                    <li>Pilih pesanan yang akan dibayar</li>
+                                    <li>Isi jumlah pembayaran</li>
+                                    <li>Sistem akan menghitung otomatis:
+                                        <ul>
+                                            <li>Sisa/kelebihan pembayaran</li>
+                                            <li>Bagi hasil 7% untuk sekolah</li>
+                                            <li>Bagi hasil 6.5% untuk daerah</li>
+                                        </ul>
+                                    </li>
+                                    <li>Status akan otomatis berubah</li>
+                                    <li>Klik Simpan Pembayaran</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-lightbulb"></i> Tips:</h6>
+                                <ul class="mb-0">
+                                    <li>Pastikan jumlah pembayaran sesuai</li>
+                                    <li>Cek status sebelum menyimpan</li>
+                                    <li>Nota akan otomatis dibuat</li>
+                                    <li>Data tersinkronisasi real-time</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-history"></i> Riwayat Terakhir</h6>
+                                <div id="recentPayments">
+                                    <p class="text-muted mb-0">Belum ada pembayaran</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/input-pembayaran.js"></script>
+</body>
+</html>

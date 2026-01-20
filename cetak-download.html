@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak & Download - SIM Buku ISMUBA & MIPA</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .filter-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .export-btn {
+            margin: 2px;
+            min-width: 120px;
+        }
+        
+        .dataTables_wrapper {
+            margin-top: 20px;
+        }
+        
+        .report-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        
+        .print-header {
+            display: none;
+        }
+        
+        @media print {
+            .sidebar, .no-print, .dataTables_length, .dataTables_filter, 
+            .dataTables_info, .dataTables_paginate {
+                display: none !important;
+            }
+            
+            .print-header {
+                display: block;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+            
+            .table {
+                font-size: 11px;
+            }
+            
+            .table th {
+                background: #f8f9fa !important;
+                color: #000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-md-block sidebar p-0">
+                <div class="position-sticky">
+                    <div class="p-3 text-center border-bottom bg-primary text-white">
+                        <h4><i class="fas fa-book"></i> SIM Buku</h4>
+                        <small>ISMUBA & MIPA</small>
+                    </div>
+                    <div class="p-3">
+                        <div class="text-center mb-3">
+                            <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-user fa-2x text-white"></i>
+                            </div>
+                            <h6 class="mt-2 mb-0" id="userName">Admin User</h6>
+                            <small id="userRole" class="text-muted">Administrator</small>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="index.html" class="sidebar-link">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="input-pemesanan.html" class="sidebar-link">
+                            <i class="fas fa-cart-plus"></i> Input Pemesanan
+                        </a>
+                        <a href="input-pembayaran.html" class="sidebar-link">
+                            <i class="fas fa-money-bill-wave"></i> Input Pembayaran
+                        </a>
+                        <a href="cetak-download.html" class="sidebar-link active">
+                            <i class="fas fa-print"></i> Cetak & Download
+                        </a>
+                        <a href="nota-pembayaran.html" class="sidebar-link">
+                            <i class="fas fa-receipt"></i> Nota Pembayaran
+                        </a>
+                        <a href="#" class="sidebar-link" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 py-3">
+                <!-- Print Header (for printing only) -->
+                <div class="print-header">
+                    <h3>LAPORAN PEMESANAN BUKU</h3>
+                    <h5>ISMUBA & MIPA</h5>
+                    <p id="printFilterInfo">Semua Data</p>
+                    <p>Tanggal Cetak: <span id="printDate"></span></p>
+                </div>
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 no-print"><i class="fas fa-print"></i> Cetak & Download Laporan</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0 no-print">
+                        <button class="btn btn-sm btn-outline-primary" onclick="printReport()">
+                            <i class="fas fa-print"></i> Cetak
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Section -->
+                <div class="filter-card no-print">
+                    <h5><i class="fas fa-filter"></i> Filter Laporan</h5>
+                    <form id="filterForm">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Kabupaten/Kota</label>
+                                <select class="form-select" id="filterKabupaten">
+                                    <option value="">Semua Kab/Kota</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Jenis Buku</label>
+                                <select class="form-select" id="filterJenis">
+                                    <option value="">Semua Jenis</option>
+                                    <option value="ISMUBA">ISMUBA</option>
+                                    <option value="MIPA">MIPA</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Status Bayar</label>
+                                <select class="form-select" id="filterStatus">
+                                    <option value="">Semua Status</option>
+                                    <option value="Belum Lunas">Belum Lunas</option>
+                                    <option value="Lunas">Lunas</option>
+                                    <option value="Kelebihan">Kelebihan</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Jenjang</label>
+                                <select class="form-select" id="filterJenjang">
+                                    <option value="">Semua Jenjang</option>
+                                    <option value="SD">SD/MI</option>
+                                    <option value="SMP">SMP/MTs</option>
+                                    <option value="SMA">SMA/SMK/MA</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Tanggal Mulai</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Tanggal Selesai</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary me-2" onclick="applyFilters()">
+                                    <i class="fas fa-search"></i> Terapkan Filter
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetFilters()">
+                                    <i class="fas fa-redo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="filter-card no-print">
+                    <h5><i class="fas fa-download"></i> Download Laporan</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Format Ekspor</label>
+                                <div>
+                                    <button type="button" class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary export-btn" onclick="exportToPDF()">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary export-btn" onclick="exportToCSV()">
+                                        <i class="fas fa-file-csv"></i> CSV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Download Berdasarkan</label>
+                                <div>
+                                    <button type="button" class="btn btn-outline-info export-btn" onclick="downloadByKabupaten()">
+                                        <i class="fas fa-city"></i> Per Kabupaten
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning export-btn" onclick="downloadBySchool()">
+                                        <i class="fas fa-school"></i> Per Sekolah
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger export-btn" onclick="downloadSummary()">
+                                        <i class="fas fa-chart-bar"></i> Ringkasan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Summary -->
+                <div id="reportSummary" class="report-summary" style="display: none;">
+                    <h6><i class="fas fa-chart-pie"></i> Ringkasan Laporan</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span>Total Data:</span>
+                                <span id="summaryTotal">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span>Total Buku:</span>
+                                <span id="summaryBooks">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span>Total Nilai:</span>
+                                <span id="summaryValue">Rp 0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span>Rata-rata:</span>
+                                <span id="summaryAverage">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="chart-container">
+                    <h5 class="no-print"><i class="fas fa-table"></i> Data Pemesanan</h5>
+                    <div class="table-responsive">
+                        <table id="dataTable" class="table table-striped table-bordered" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>ID Pesanan</th>
+                                    <th>Tanggal</th>
+                                    <th>Kab/Kota</th>
+                                    <th>Sekolah</th>
+                                    <th>Jenjang</th>
+                                    <th>Jenis Buku</th>
+                                    <th>Judul Buku</th>
+                                    <th>Kelas</th>
+                                    <th>Jumlah</th>
+                                    <th>Harga</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cetak-download.js"></script>
+</body>
+</html>
